@@ -56,12 +56,64 @@ const statusIcon: Record<string, typeof Clock> = {
 };
 
 export default function PaiementsPage() {
+  const [payments, setPayments] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [showValidateModal, setShowValidateModal] = useState(false);
   const [showRejectModal, setShowRejectModal] = useState(false);
   const [showDetailModal, setShowDetailModal] = useState(false);
-  const [selectedPayment, setSelectedPayment] = useState<(typeof payments)[0] | null>(null);
+  const [selectedPayment, setSelectedPayment] = useState<any | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
+  const [rejectReason, setRejectReason] = useState("Compte Mobile Money invalide");
+
+  const mapDBPayment = (p: any) => {
+    const statusMap: Record<string, string> = {
+      pending: "En Attente",
+      paid: "Payé",
+      rejected: "Rejeté",
+    };
+    const status = statusMap[p.status.toLowerCase()] || p.status;
+    const statusColor = p.status.toLowerCase() === "pending" 
+      ? "bg-yellow-100 text-yellow-700" 
+      : p.status.toLowerCase() === "paid" 
+      ? "bg-emerald-100 text-emerald-700" 
+      : "bg-red-100 text-red-700";
+
+    return {
+      id: p.id,
+      name: p.user?.displayName || "Contributeur",
+      amount: `${p.amount.toLocaleString()} ${p.currency}`,
+      amountNum: p.amount,
+      operator: p.type,
+      phone: p.user?.phone || "Non spécifié",
+      date: new Date(p.createdAt).toLocaleDateString("fr-FR", { year: "numeric", month: "short", day: "numeric" }),
+      status,
+      statusColor,
+      level: 1,
+      avatar: (p.user?.displayName?.slice(0, 2) || "CO").toUpperCase(),
+      avatarColor: "bg-emerald-100 text-emerald-700",
+    };
+  };
+
+  const fetchPayments = () => {
+    setIsLoading(true);
+    fetch("/api/payments")
+      .then((res) => res.json())
+      .then((json) => {
+        if (json.success) {
+          setPayments(json.payments.map(mapDBPayment));
+        }
+        setIsLoading(false);
+      })
+      .catch((err) => {
+        console.error(err);
+        setIsLoading(false);
+      });
+  };
+
+  useEffect(() => {
+    fetchPayments();
+  }, []);
 
   const totalPages = Math.ceil(payments.length / pageSize);
   const paginatedPayments = payments.slice(
@@ -69,19 +121,55 @@ export default function PaiementsPage() {
     currentPage * pageSize
   );
 
-  const openValidate = (p: (typeof payments)[0]) => {
+  const openValidate = (p: any) => {
     setSelectedPayment(p);
     setShowValidateModal(true);
   };
 
-  const openReject = (p: (typeof payments)[0]) => {
+  const openReject = (p: any) => {
     setSelectedPayment(p);
     setShowRejectModal(true);
   };
 
-  const openDetail = (p: (typeof payments)[0]) => {
+  const openDetail = (p: any) => {
     setSelectedPayment(p);
     setShowDetailModal(true);
+  };
+
+  const handleApprove = async () => {
+    if (!selectedPayment) return;
+    try {
+      const res = await fetch("/api/payments", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: selectedPayment.id, status: "paid" }),
+      });
+      const json = await res.json();
+      if (json.success) {
+        fetchPayments();
+        setShowValidateModal(false);
+      }
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  const handleReject = async () => {
+    if (!selectedPayment) return;
+    try {
+      const res = await fetch("/api/payments", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: selectedPayment.id, status: "rejected" }),
+      });
+      const json = await res.json();
+      if (json.success) {
+        fetchPayments();
+        setShowRejectModal(false);
+      }
+    } catch (error) {
+      console.error(error);
+    }
   };
 
   return (
@@ -244,7 +332,7 @@ export default function PaiementsPage() {
               </div>
               <DialogFooter>
                 <Button variant="outline" onClick={() => setShowValidateModal(false)}>Annuler</Button>
-                <Button className="bg-emerald-500 hover:bg-emerald-600 text-white gap-1.5" onClick={() => setShowValidateModal(false)}>
+                <Button className="bg-emerald-500 hover:bg-emerald-600 text-white gap-1.5" onClick={handleApprove}>
                   <CheckCircle2 className="h-4 w-4" /> Confirmer le Paiement
                 </Button>
               </DialogFooter>
@@ -272,7 +360,7 @@ export default function PaiementsPage() {
                 </div>
                 <div>
                   <label className="text-xs font-semibold text-gray-500 uppercase block mb-1.5">Raison du Rejet</label>
-                  <select className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                  <select className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500" value={rejectReason} onChange={(e) => setRejectReason(e.target.value)}>
                     <option>Compte Mobile Money invalide</option>
                     <option>Fraude détectée</option>
                     <option>Montant incorrect</option>
@@ -287,7 +375,7 @@ export default function PaiementsPage() {
               </div>
               <DialogFooter>
                 <Button variant="outline" onClick={() => setShowRejectModal(false)}>Annuler</Button>
-                <Button className="bg-red-500 hover:bg-red-600 text-white gap-1.5" onClick={() => setShowRejectModal(false)}>
+                <Button className="bg-red-500 hover:bg-red-600 text-white gap-1.5" onClick={handleReject}>
                   <XCircle className="h-4 w-4" /> Confirmer le Rejet
                 </Button>
               </DialogFooter>

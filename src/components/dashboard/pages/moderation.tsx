@@ -52,16 +52,74 @@ const initialContributions = [
 ];
 
 export default function ModerationPage() {
-  const [contributions, setContributions] = useState(initialContributions);
+  const [contributions, setContributions] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [showApproveModal, setShowApproveModal] = useState(false);
   const [showRejectModal, setShowRejectModal] = useState(false);
-  const [selectedContribution, setSelectedContribution] = useState<(typeof initialContributions)[0] | null>(null);
+  const [selectedContribution, setSelectedContribution] = useState<any | null>(null);
   const [approveComment, setApproveComment] = useState("");
   const [rejectReason, setRejectReason] = useState("Qualité insuffisante");
   const [rejectComment, setRejectComment] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
+
+  const mapDBContribution = (c: any) => {
+    const meta = c.metadata || {};
+    const lang = meta.language || meta.targetLang || "Wolof";
+    
+    let detailText = "";
+    if (c.type === "AUDIO") {
+      detailText = `Audio URL: ${meta.audioUrl || "non-spécifié"} | Phrase: ${meta.phrase || ""}`;
+    } else if (c.type === "TRANSLATION") {
+      detailText = `Source: ${meta.sourceText || ""} | Traduction: ${meta.translation || meta.translatedText || ""}`;
+    } else if (c.type === "IMAGE") {
+      detailText = `Image URL: ${meta.imageUrl || meta.downloadUrl || ""} | Catégorie: ${meta.category || ""}`;
+    }
+
+    const scoreVal = typeof meta.qualityScore === "number" ? meta.qualityScore : 0.85;
+
+    return {
+      id: c.id,
+      contributor: c.user?.displayName || "Contributeur",
+      type: c.type === "AUDIO" ? "Audio" : c.type === "TRANSLATION" ? "Traduction" : "Image",
+      language: lang,
+      date: new Date(c.createdAt).toLocaleDateString("fr-FR", { year: "numeric", month: "short", day: "numeric" }),
+      status: c.status === "PENDING" ? "En Revue" : c.status === "FLAGGED" ? "Signalé" : c.status,
+      statusColor: c.status === "PENDING" 
+        ? "bg-yellow-100 text-yellow-700" 
+        : c.status === "FLAGGED" 
+        ? "bg-red-100 text-red-700" 
+        : c.status === "APPROVED" 
+        ? "bg-emerald-100 text-emerald-700" 
+        : "bg-gray-100 text-gray-600",
+      score: scoreVal,
+      flagReason: c.status === "FLAGGED" ? (meta.flagReason || "Signalé par la communauté") : "Attente arbitrage",
+      avatar: (c.user?.displayName?.slice(0, 2) || "CO").toUpperCase(),
+      avatarColor: "bg-emerald-100 text-emerald-700",
+      detail: detailText,
+    };
+  };
+
+  const fetchContributions = () => {
+    setIsLoading(true);
+    fetch("/api/moderation")
+      .then((res) => res.json())
+      .then((json) => {
+        if (json.success) {
+          setContributions(json.contributions.map(mapDBContribution));
+        }
+        setIsLoading(false);
+      })
+      .catch((err) => {
+        console.error(err);
+        setIsLoading(false);
+      });
+  };
+
+  useEffect(() => {
+    fetchContributions();
+  }, []);
 
   const totalPages = Math.ceil(contributions.length / pageSize);
   const paginatedContributions = contributions.slice(
@@ -69,46 +127,58 @@ export default function ModerationPage() {
     currentPage * pageSize
   );
 
-  const openDetail = (c: (typeof initialContributions)[0]) => {
+  const openDetail = (c: any) => {
     setSelectedContribution(c);
     setShowDetailModal(true);
   };
 
-  const openApprove = (c: (typeof initialContributions)[0]) => {
+  const openApprove = (c: any) => {
     setSelectedContribution(c);
     setApproveComment("");
     setShowApproveModal(true);
   };
 
-  const openReject = (c: (typeof initialContributions)[0]) => {
+  const openReject = (c: any) => {
     setSelectedContribution(c);
     setRejectReason("Qualité insuffisante");
     setRejectComment("");
     setShowRejectModal(true);
   };
 
-  const handleApprove = () => {
+  const handleApprove = async () => {
     if (!selectedContribution) return;
-    setContributions((prev) =>
-      prev.map((c) =>
-        c.id === selectedContribution.id
-          ? { ...c, status: "Approuvé", statusColor: "bg-emerald-100 text-emerald-700" }
-          : c
-      )
-    );
-    setShowApproveModal(false);
+    try {
+      const res = await fetch("/api/moderation", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: selectedContribution.id, status: "APPROVED" }),
+      });
+      const json = await res.json();
+      if (json.success) {
+        fetchContributions();
+        setShowApproveModal(false);
+      }
+    } catch (error) {
+      console.error(error);
+    }
   };
 
-  const handleReject = () => {
+  const handleReject = async () => {
     if (!selectedContribution) return;
-    setContributions((prev) =>
-      prev.map((c) =>
-        c.id === selectedContribution.id
-          ? { ...c, status: "Rejeté", statusColor: "bg-gray-100 text-gray-600" }
-          : c
-      )
-    );
-    setShowRejectModal(false);
+    try {
+      const res = await fetch("/api/moderation", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: selectedContribution.id, status: "REJECTED" }),
+      });
+      const json = await res.json();
+      if (json.success) {
+        fetchContributions();
+        setShowRejectModal(false);
+      }
+    } catch (error) {
+      console.error(error);
+    }
   };
 
   const signaleCount = contributions.filter((c) => c.status === "Signalé").length;

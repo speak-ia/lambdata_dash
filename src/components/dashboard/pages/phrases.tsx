@@ -68,12 +68,23 @@ const initialPhrases = [
 
 type Phrase = (typeof initialPhrases)[0];
 
+interface DBTaskPhrase {
+  id: string;
+  text: string;
+  language: string;
+  module: "AUDIO" | "TRANSLATION";
+  category: string | null;
+  active: boolean;
+  createdAt: string;
+}
+
 export default function PhrasesPage() {
-  const [phrases, setPhrases] = useState<Phrase[]>(initialPhrases);
+  const [phrases, setPhrases] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
   const [showImportModal, setShowImportModal] = useState(false);
   const [showDetailModal, setShowDetailModal] = useState(false);
-  const [selectedPhrase, setSelectedPhrase] = useState<Phrase | null>(null);
+  const [selectedPhrase, setSelectedPhrase] = useState<any | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
 
@@ -86,39 +97,85 @@ export default function PhrasesPage() {
   const [importPreview, setImportPreview] = useState<{ count: number; error?: string } | null>(null);
   const [importCampaign, setImportCampaign] = useState("Aucune");
 
+  const mapDBPhrase = (p: DBTaskPhrase) => {
+    const langAbbr: Record<string, string> = { Wolof: "WO", Bambara: "BA", Dioula: "DI", Pulaar: "PU", Soninké: "SO", Malinké: "ML" };
+    return {
+      id: p.id,
+      text: p.text,
+      translation: "",
+      language: p.language,
+      type: p.module === "AUDIO" ? "Audio" : "Traduction",
+      theme: p.category || "Santé",
+      status: p.active ? "Actif" : "Inactif",
+      statusColor: p.active ? "bg-emerald-100 text-emerald-700" : "bg-gray-100 text-gray-600",
+      submissions: 0,
+      avatar: langAbbr[p.language] ?? p.language.slice(0, 2).toUpperCase(),
+      createdDate: new Date(p.createdAt).toLocaleDateString("fr-FR", { year: "numeric", month: "short", day: "numeric" }),
+      campaign: "—",
+    };
+  };
+
+  const fetchPhrases = () => {
+    setIsLoading(true);
+    fetch("/api/phrases")
+      .then((res) => res.json())
+      .then((json) => {
+        if (json.success) {
+          setPhrases(json.phrases.map(mapDBPhrase));
+        }
+        setIsLoading(false);
+      })
+      .catch((err) => {
+        console.error(err);
+        setIsLoading(false);
+      });
+  };
+
+  useEffect(() => {
+    fetchPhrases();
+  }, []);
+
   const totalPages = Math.ceil(phrases.length / pageSize);
   const paginatedPhrases = phrases.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
-  const openDetail = (p: Phrase) => {
+  const openDetail = (p: any) => {
     setSelectedPhrase(p);
     setShowDetailModal(true);
   };
 
-  const handleAddPhrase = () => {
+  const handleAddPhrase = async () => {
     if (!newPhrase.text.trim()) return;
-    const id = `PHR-${String(Math.max(...phrases.map(p => parseInt(p.id.split("-")[1]))) + 1).padStart(5, "0")}`;
-    const langAbbr: Record<string, string> = { Wolof: "WO", Bambara: "BA", Dioula: "DI", Pulaar: "PU", Soninké: "SO", Malinké: "ML" };
-    setPhrases((prev) => [{
-      id,
-      text: newPhrase.text,
-      translation: newPhrase.translation,
-      language: newPhrase.language,
-      type: newPhrase.type,
-      theme: newPhrase.theme,
-      status: "Actif",
-      statusColor: "bg-emerald-100 text-emerald-700",
-      submissions: 0,
-      avatar: langAbbr[newPhrase.language] ?? newPhrase.language.slice(0, 2).toUpperCase(),
-      createdDate: new Date().toLocaleDateString("fr-FR", { year: "numeric", month: "short", day: "numeric" }),
-      campaign: newPhrase.campaign === "Aucune" ? "—" : newPhrase.campaign,
-    }, ...prev]);
-    setNewPhrase({ text: "", translation: "", language: "Wolof", type: "Audio", theme: "Santé", campaign: "Aucune" });
-    setShowAddModal(false);
+    
+    try {
+      const res = await fetch("/api/phrases", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(newPhrase),
+      });
+      const json = await res.json();
+      if (json.success) {
+        fetchPhrases();
+        setNewPhrase({ text: "", translation: "", language: "Wolof", type: "Audio", theme: "Santé", campaign: "Aucune" });
+        setShowAddModal(false);
+      }
+    } catch (error) {
+      console.error(error);
+    }
   };
 
-  const handleDeletePhrase = (id: string) => {
-    setPhrases((prev) => prev.filter((p) => p.id !== id));
-    setShowDetailModal(false);
+  const handleDeletePhrase = async (id: string) => {
+    try {
+      const res = await fetch(`/api/phrases?id=${id}`, {
+        method: "DELETE",
+      });
+      const json = await res.json();
+      if (json.success) {
+        fetchPhrases();
+        setShowDetailModal(false);
+      }
+    } catch (error) {
+      console.error(error);
+    }
   };
 
   const parseCSV = (text: string): Record<string, string>[] => {
@@ -146,37 +203,34 @@ export default function PhrasesPage() {
     reader.readAsText(file);
   };
 
-  const handleImport = () => {
+  const handleImport = async () => {
     if (!importFile) return;
     const reader = new FileReader();
-    reader.onload = (e) => {
+    reader.onload = async (e) => {
       const text = e.target?.result as string;
       try {
         const rows: Record<string, string>[] = importFile.name.endsWith(".json") ? JSON.parse(text) : parseCSV(text);
-        const langAbbr: Record<string, string> = { Wolof: "WO", Bambara: "BA", Dioula: "DI", Pulaar: "PU", Soninké: "SO", Malinké: "ML" };
-        const base = Math.max(...phrases.map((p) => parseInt(p.id.split("-")[1])));
-        const imported: Phrase[] = rows.map((row, i) => {
-          const lang = row.langue ?? row.language ?? "Wolof";
-          return {
-            id: `PHR-${String(base + i + 1).padStart(5, "0")}`,
-            text: row.phrase ?? row.text ?? "",
-            translation: row.traduction ?? row.translation ?? "",
-            language: lang,
-            type: (row.type ?? "Audio") as "Audio" | "Traduction",
-            theme: row.thematique ?? row.theme ?? "Santé",
-            status: "Actif",
-            statusColor: "bg-emerald-100 text-emerald-700",
-            submissions: 0,
-            avatar: langAbbr[lang] ?? lang.slice(0, 2).toUpperCase(),
-            createdDate: new Date().toLocaleDateString("fr-FR", { year: "numeric", month: "short", day: "numeric" }),
-            campaign: importCampaign === "Aucune" ? "—" : importCampaign,
-          };
+        const data = rows.map((row) => ({
+          text: row.phrase ?? row.text ?? "",
+          language: row.langue ?? row.language ?? "Wolof",
+          type: row.type ?? "Audio",
+          theme: row.thematique ?? row.theme ?? "Santé",
+        }));
+
+        const res = await fetch("/api/phrases", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(data),
         });
-        setPhrases((prev) => [...imported, ...prev]);
-        setImportFile(null);
-        setImportPreview(null);
-        setShowImportModal(false);
-      } catch {
+        const json = await res.json();
+        if (json.success) {
+          fetchPhrases();
+          setImportFile(null);
+          setImportPreview(null);
+          setShowImportModal(false);
+        }
+      } catch (error) {
+        console.error(error);
         setImportPreview({ count: 0, error: "Erreur lors de l'import" });
       }
     };

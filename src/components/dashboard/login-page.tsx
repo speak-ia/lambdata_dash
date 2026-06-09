@@ -62,9 +62,9 @@ export function LoginPage() {
     setIsLoading(true);
     await new Promise((resolve) => setTimeout(resolve, 1200));
 
-    const success = login(email, password);
+    const success = await login(email, password);
     if (!success) {
-      setError("Identifiants incorrects. Veuillez réessayer.");
+      setError("Identifiants incorrects ou compte non-administrateur. Veuillez réessayer.");
     }
     setIsLoading(false);
   };

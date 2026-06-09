@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import {
   Users,
   Mic,
@@ -7,58 +8,65 @@ import {
   Wallet,
   Download,
   TrendingUp,
-  TrendingDown,
 } from "lucide-react";
 
-const stats = [
-  {
-    title: "Contributeurs Actifs",
-    value: "1,247",
-    change: "+18% cette semaine",
-    trend: "up" as const,
-    icon: Users,
-    iconBg: "bg-emerald-100",
-    iconColor: "text-emerald-600",
-  },
-  {
-    title: "Total Contributions",
-    value: "45,832",
-    change: "+12% cette semaine",
-    trend: "up" as const,
-    icon: Mic,
-    iconBg: "bg-emerald-100",
-    iconColor: "text-emerald-600",
-  },
-  {
-    title: "Taux de Validation",
-    value: "87.3%",
-    change: "+3% cette semaine",
-    trend: "up" as const,
-    icon: CheckCircle2,
-    iconBg: "bg-emerald-100",
-    iconColor: "text-emerald-600",
-  },
-  {
-    title: "Paiements en Attente",
-    value: "23",
-    change: "+5 nouvelles demandes",
-    trend: "up" as const,
-    icon: Wallet,
-    iconBg: "bg-amber-100",
-    iconColor: "text-amber-600",
-  },
-  {
-    title: "Corpus Exportés",
-    value: "12",
-    change: "+2 ce mois",
-    trend: "up" as const,
-    icon: Download,
-    iconBg: "bg-emerald-100",
-    iconColor: "text-emerald-600",
-  },
-];
-
 export function StatsCards() {
+  const [data, setData] = useState<any>(null);
+
+  useEffect(() => {
+    fetch("/api/analytics")
+      .then((res) => res.json())
+      .then((json) => {
+        if (json.success) {
+          setData(json);
+        }
+      })
+      .catch((err) => console.error(err));
+  }, []);
+
+  const stats = [
+    {
+      title: "Contributeurs Actifs",
+      value: data ? data.totalUsers.toLocaleString() : "...",
+      change: "Inscriptions réelles",
+      icon: Users,
+      iconBg: "bg-emerald-100",
+      iconColor: "text-emerald-600",
+    },
+    {
+      title: "Total Contributions",
+      value: data ? data.totalContributions.toLocaleString() : "...",
+      change: "Voix, textes & images",
+      icon: Mic,
+      iconBg: "bg-emerald-100",
+      iconColor: "text-emerald-600",
+    },
+    {
+      title: "En attente de Modération",
+      value: data ? data.pendingContributions.toLocaleString() : "...",
+      change: "Contributions à valider",
+      icon: CheckCircle2,
+      iconBg: "bg-amber-100",
+      iconColor: "text-amber-600",
+    },
+    {
+      title: "Paiements en Attente",
+      value: data ? `${data.totalPendingXOF.toLocaleString()} XOF` : "...",
+      change: "Demandes Mobile Money",
+      icon: Wallet,
+      iconBg: "bg-amber-100",
+      iconColor: "text-amber-600",
+    },
+    {
+      title: "Paiements Validés",
+      value: data ? `${data.totalPaidXOF.toLocaleString()} XOF` : "...",
+      change: "Montant total versé",
+      icon: Download,
+      iconBg: "bg-emerald-100",
+      iconColor: "text-emerald-600",
+    },
+  ];
+
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
       {stats.map((stat) => (
@@ -80,16 +88,8 @@ export function StatsCards() {
             {stat.value}
           </div>
           <div className="flex items-center gap-1">
-            {stat.trend === "up" ? (
-              <TrendingUp className="h-3 w-3 text-emerald-500" />
-            ) : (
-              <TrendingDown className="h-3 w-3 text-red-500" />
-            )}
-            <span
-              className={`text-xs font-medium ${
-                stat.trend === "up" ? "text-emerald-500" : "text-red-500"
-              }`}
-            >
+            <TrendingUp className="h-3 w-3 text-emerald-500" />
+            <span className="text-xs font-medium text-emerald-500">
               {stat.change}
             </span>
           </div>
