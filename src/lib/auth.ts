@@ -30,18 +30,30 @@ export const useAuth = create<AuthState>((set) => ({
       }
 
       const firebaseUser = await signInWithEmail(email, password);
+
+      let dbName = "";
+      try {
+        const profileRes = await fetch(`/api/profile?email=${encodeURIComponent(firebaseUser.email || email)}`);
+        const profileJson = await profileRes.json();
+        if (profileJson.success && profileJson.profile) {
+          dbName = profileJson.profile.name;
+        }
+      } catch (e) {
+        console.error("Erreur de récupération du profil DB:", e);
+      }
+
+      const finalName = dbName || firebaseUser.displayName || firebaseUser.email?.split("@")[0] || "Administrateur";
       
       set({
         isAuthenticated: true,
         user: {
-          name: firebaseUser.displayName || firebaseUser.email?.split("@")[0] || "Administrateur",
+          name: finalName,
           email: firebaseUser.email || email,
           role: "Admin Principal",
           avatar: (
-            firebaseUser.displayName?.split(" ").map(w => w[0]).join("") ||
-            firebaseUser.email?.slice(0, 2) ||
+            finalName.split(" ").map((w: string) => w[0]).join("") ||
             "AD"
-          ).toUpperCase(),
+          ).toUpperCase().slice(0, 2),
         },
       });
       return true;
@@ -69,17 +81,29 @@ export const useAuth = create<AuthState>((set) => ({
         return false;
       }
 
+      let dbName = "";
+      try {
+        const profileRes = await fetch(`/api/profile?email=${encodeURIComponent(email)}`);
+        const profileJson = await profileRes.json();
+        if (profileJson.success && profileJson.profile) {
+          dbName = profileJson.profile.name;
+        }
+      } catch (e) {
+        console.error("Erreur de récupération du profil DB:", e);
+      }
+
+      const finalName = dbName || firebaseUser.displayName || email.split("@")[0] || "Administrateur";
+
       set({
         isAuthenticated: true,
         user: {
-          name: firebaseUser.displayName || email.split("@")[0] || "Administrateur",
+          name: finalName,
           email: email,
           role: "Admin Principal",
           avatar: (
-            firebaseUser.displayName?.split(" ").map(w => w[0]).join("") ||
-            email.slice(0, 2) ||
+            finalName.split(" ").map((w: string) => w[0]).join("") ||
             "AD"
-          ).toUpperCase(),
+          ).toUpperCase().slice(0, 2),
         },
       });
       return true;

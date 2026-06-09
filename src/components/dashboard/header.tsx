@@ -37,9 +37,13 @@ import { useAuth } from "@/lib/auth";
 
 export function Header() {
   const { setActivePage, toggleSidebar } = useNavigation();
-  const { logout } = useAuth();
+  const { user, logout } = useAuth();
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
+
+  const nameParts = (user?.name || "Administrateur").split(" ");
+  const firstName = nameParts[0] || "";
+  const lastName = nameParts.slice(1).join(" ") || "";
 
   return (
     <>
@@ -58,7 +62,7 @@ export function Header() {
               Dashboard Administrateur
             </h1>
             <p className="text-[11px] sm:text-[13px] text-gray-500 hidden sm:block">
-              Bienvenue, Mody Barry 👋
+              Bienvenue, {user?.name || "Administrateur"} 👋
             </p>
           </div>
         </div>
@@ -92,14 +96,14 @@ export function Header() {
             <DropdownMenuTrigger asChild>
               <button className="flex items-center gap-1.5 sm:gap-2.5 pl-2 border-l border-gray-200 ml-1 hover:bg-gray-50 rounded-lg px-2 py-1.5 transition-colors">
                 <Avatar className="h-8 w-8 sm:h-9 sm:w-9 ring-2 ring-emerald-100">
-                  <AvatarImage src="https://api.dicebear.com/7.x/avataaars/svg?seed=Mody" />
+                  <AvatarImage src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(user?.name || "Admin")}`} />
                   <AvatarFallback className="bg-emerald-100 text-emerald-700 text-xs font-semibold">
-                    MB
+                    {user?.avatar || "AD"}
                   </AvatarFallback>
                 </Avatar>
                 <div className="flex-col items-start hidden sm:flex">
                   <span className="text-sm font-medium text-gray-800 leading-tight">
-                    Mody Barry
+                    {user?.name || "Administrateur"}
                   </span>
                   <span className="text-[11px] text-emerald-600 font-medium leading-tight flex items-center gap-1">
                     <Shield className="h-3 w-3" />
@@ -114,17 +118,17 @@ export function Header() {
               <DropdownMenuLabel>
                 <div className="flex items-center gap-3 py-1">
                   <Avatar className="h-10 w-10 ring-2 ring-emerald-200">
-                    <AvatarImage src="https://api.dicebear.com/7.x/avataaars/svg?seed=Mody" />
+                    <AvatarImage src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(user?.name || "Admin")}`} />
                     <AvatarFallback className="bg-emerald-100 text-emerald-700 text-sm font-semibold">
-                      MB
+                      {user?.avatar || "AD"}
                     </AvatarFallback>
                   </Avatar>
                   <div className="flex flex-col">
                     <span className="text-sm font-semibold text-gray-800">
-                      Mody Barry
+                      {user?.name || "Administrateur"}
                     </span>
                     <span className="text-xs text-gray-500">
-                      modybarry50@gmail.com
+                      {user?.email || "admin@lambdata.ai"}
                     </span>
                   </div>
                 </div>
@@ -192,14 +196,14 @@ export function Header() {
             {/* Avatar & Name */}
             <div className="flex items-center gap-4">
               <Avatar className="h-16 w-16 ring-4 ring-emerald-100">
-                <AvatarImage src="https://api.dicebear.com/7.x/avataaars/svg?seed=Mody" />
+                <AvatarImage src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(user?.name || "Admin")}`} />
                 <AvatarFallback className="bg-emerald-100 text-emerald-700 text-xl font-semibold">
-                  MB
+                  {user?.avatar || "AD"}
                 </AvatarFallback>
               </Avatar>
               <div>
                 <h3 className="text-lg font-bold text-gray-800">
-                  Mody Barry
+                  {user?.name || "Administrateur"}
                 </h3>
                 <div className="flex items-center gap-2 mt-0.5">
                   <Shield className="h-3.5 w-3.5 text-emerald-600" />
@@ -221,7 +225,7 @@ export function Header() {
                     Prénom
                   </label>
                   <input
-                    defaultValue="Amadou"
+                    defaultValue={firstName}
                     className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
                   />
                 </div>
@@ -230,7 +234,7 @@ export function Header() {
                     Nom
                   </label>
                   <input
-                    defaultValue="Diallo"
+                    defaultValue={lastName}
                     className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
                   />
                 </div>
@@ -240,7 +244,7 @@ export function Header() {
                   Email
                 </label>
                 <input
-                  defaultValue="modybarry50@gmail.com"
+                  defaultValue={user?.email || "admin@lambdata.ai"}
                   className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
                 />
               </div>

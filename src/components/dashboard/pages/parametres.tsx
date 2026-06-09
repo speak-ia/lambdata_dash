@@ -76,10 +76,19 @@ export default function ParametresPage() {
   useEffect(() => {
     try {
       const stored = localStorage.getItem(SETTINGS_KEY);
-      if (stored) setSettings({ ...defaults, ...JSON.parse(stored) });
+      const userDefaults = {
+        ...defaults,
+        adminName: user?.name || defaults.adminName,
+        adminEmail: user?.email || defaults.adminEmail,
+      };
+      if (stored) {
+        setSettings({ ...userDefaults, ...JSON.parse(stored) });
+      } else {
+        setSettings(userDefaults);
+      }
     } catch { /* ignore */ }
     fetchAdmins();
-  }, []);
+  }, [user]);
 
   const set = (key: keyof typeof defaults, value: string | boolean) =>
     setSettings((s) => ({ ...s, [key]: value }));
@@ -413,13 +422,13 @@ export default function ParametresPage() {
               <User className="h-4 w-4 text-emerald-600" />
               <h3 className="text-base font-semibold text-gray-800">Profil Admin</h3>
             </div>
-            <div className="flex items-center gap-3 mb-4">
-              <div className="h-12 w-12 bg-emerald-100 rounded-full flex items-center justify-center">
-                <span className="text-emerald-700 font-bold">MB</span>
+             <div className="flex items-center gap-3 mb-4">
+              <div className="h-12 w-12 bg-emerald-100 rounded-full flex items-center justify-center text-emerald-700 font-bold">
+                {user?.avatar || "AD"}
               </div>
               <div>
-                <p className="text-sm font-semibold text-gray-800">Mody Barry</p>
-                <p className="text-xs text-gray-500">modybarry50@gmail.com</p>
+                <p className="text-sm font-semibold text-gray-800">{user?.name || "Administrateur"}</p>
+                <p className="text-xs text-gray-500">{user?.email || "admin@lambdata.ai"}</p>
               </div>
             </div>
             <div className="space-y-3">
