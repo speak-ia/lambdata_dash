@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Search,
   Bell,
@@ -44,6 +44,82 @@ export function Header() {
   const nameParts = (user?.name || "Administrateur").split(" ");
   const firstName = nameParts[0] || "";
   const lastName = nameParts.slice(1).join(" ") || "";
+
+  const [profileFirstName, setProfileFirstName] = useState("");
+  const [profileLastName, setProfileLastName] = useState("");
+  const [profilePhone, setProfilePhone] = useState("");
+  const [profileActionsCount, setProfileActionsCount] = useState(0);
+  const [isSavingProfile, setIsSavingProfile] = useState(false);
+  const [profileError, setProfileError] = useState("");
+  const [profileSuccess, setProfileSuccess] = useState("");
+
+  // Load profile details when modal is shown
+  useEffect(() => {
+    if (showProfileModal && user?.email) {
+      setProfileError("");
+      setProfileSuccess("");
+      fetch(`/api/profile?email=${encodeURIComponent(user.email)}`)
+        .then((res) => res.json())
+        .then((json) => {
+          if (json.success && json.profile) {
+            const parts = (json.profile.name || "").split(" ");
+            setProfileFirstName(parts[0] || "");
+            setProfileLastName(parts.slice(1).join(" ") || "");
+            setProfilePhone(json.profile.phone || "");
+            setProfileActionsCount(json.profile.actionsCount || 0);
+          }
+        })
+        .catch((err) => console.error("Error loading profile:", err));
+    }
+  }, [showProfileModal, user?.email]);
+
+  const handleSaveProfile = async () => {
+    if (!user?.email) return;
+    setIsSavingProfile(true);
+    setProfileError("");
+    setProfileSuccess("");
+    try {
+      const res = await fetch("/api/profile", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: user.email,
+          firstName: profileFirstName,
+          lastName: profileLastName,
+          phone: profilePhone,
+        }),
+      });
+      const json = await res.json();
+      if (json.success && json.profile) {
+        setProfileSuccess("Profil mis à jour !");
+        
+        // Update Zustand store state
+        const updatedName = json.profile.name;
+        const updatedAvatar = (
+          updatedName.split(" ").map((w: string) => w[0]).join("") || "AD"
+        ).toUpperCase().slice(0, 2);
+        
+        useAuth.setState({
+          user: {
+            ...user,
+            name: updatedName,
+            avatar: updatedAvatar,
+          }
+        });
+
+        setTimeout(() => {
+          setShowProfileModal(false);
+        }, 1000);
+      } else {
+        setProfileError(json.error || "Erreur de mise à jour");
+      }
+    } catch (err) {
+      console.error(err);
+      setProfileError("Impossible de se connecter au serveur");
+    } finally {
+      setIsSavingProfile(false);
+    }
+  };
 
   return (
     <>
@@ -217,6 +293,17 @@ export function Header() {
               </div>
             </div>
 
+            {profileError && (
+              <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-xs text-red-600 mb-2">
+                {profileError}
+              </div>
+            )}
+            {profileSuccess && (
+              <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-3 text-xs text-emerald-600 mb-2">
+                {profileSuccess}
+              </div>
+            )}
+
             {/* Info Fields */}
             <div className="space-y-3">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -225,7 +312,9 @@ export function Header() {
                     Prénom
                   </label>
                   <input
-                    defaultValue={firstName}
+                    value={profileFirstName}
+                    onChange={(e) => setProfileFirstName(e.target.value)}
+                    disabled={isSavingProfile}
                     className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
                   />
                 </div>
@@ -234,7 +323,9 @@ export function Header() {
                     Nom
                   </label>
                   <input
-                    defaultValue={lastName}
+                    value={profileLastName}
+                    onChange={(e) => setProfileLastName(e.target.value)}
+                    disabled={isSavingProfile}
                     className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
                   />
                 </div>
@@ -244,8 +335,9 @@ export function Header() {
                   Email
                 </label>
                 <input
-                  defaultValue={user?.email || "admin@lambdata.ai"}
-                  className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  value={user?.email || ""}
+                  disabled
+                  className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 bg-gray-50 text-gray-400 cursor-not-allowed focus:outline-none"
                 />
               </div>
               <div>
@@ -253,7 +345,10 @@ export function Header() {
                   Téléphone
                 </label>
                 <input
-                  defaultValue="+221 77 888 9900"
+                  value={profilePhone}
+                  onChange={(e) => setProfilePhone(e.target.value)}
+                  disabled={isSavingProfile}
+                  placeholder="+221 77 123 4567"
                   className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
                 />
                 <p className="text-[10px] text-gray-400 mt-1">
@@ -265,7 +360,7 @@ export function Header() {
             {/* Stats */}
             <div className="grid grid-cols-3 gap-3">
               <div className="bg-emerald-50 rounded-lg p-3 text-center border border-emerald-100">
-                <p className="text-lg font-bold text-emerald-700">156</p>
+                <p className="text-lg font-bold text-emerald-700">{profileActionsCount}</p>
                 <p className="text-[10px] text-emerald-600">Actions ce mois</p>
               </div>
               <div className="bg-blue-50 rounded-lg p-3 text-center border border-blue-100">
@@ -305,15 +400,17 @@ export function Header() {
           <DialogFooter>
             <Button
               variant="outline"
+              disabled={isSavingProfile}
               onClick={() => setShowProfileModal(false)}
             >
               Annuler
             </Button>
             <Button
+              disabled={isSavingProfile}
               className="bg-emerald-500 hover:bg-emerald-600 text-white"
-              onClick={() => setShowProfileModal(false)}
+              onClick={handleSaveProfile}
             >
-              Enregistrer
+              {isSavingProfile ? "Enregistrement..." : "Enregistrer"}
             </Button>
           </DialogFooter>
         </DialogContent>
