@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { signInWithEmail, signOutFirebase } from "./firebase/auth";
+import { signInWithEmail, signInWithGoogle, signOutFirebase } from "./firebase/auth";
 
 interface AuthState {
   isAuthenticated: boolean;
@@ -10,6 +10,7 @@ interface AuthState {
     avatar: string;
   } | null;
   login: (email: string, password: string) => Promise<boolean>;
+  loginWithGoogle: () => Promise<boolean>;
   logout: () => Promise<void>;
 }
 
@@ -45,6 +46,40 @@ export const useAuth = create<AuthState>((set) => ({
       return true;
     } catch (error) {
       console.error("Erreur Firebase Login:", error);
+      return false;
+    }
+  },
+  loginWithGoogle: async () => {
+    try {
+      const firebaseUser = await signInWithGoogle();
+      const email = firebaseUser.email || "";
+
+      const whitelist = (process.env.NEXT_PUBLIC_ADMIN_EMAILS || "")
+        .split(",")
+        .map((e) => e.trim().toLowerCase());
+
+      if (!email || !whitelist.includes(email.toLowerCase())) {
+        console.warn("Utilisateur non autorisé (non-admin) via Google.");
+        await signOutFirebase();
+        return false;
+      }
+
+      set({
+        isAuthenticated: true,
+        user: {
+          name: firebaseUser.displayName || email.split("@")[0] || "Administrateur",
+          email: email,
+          role: "Admin Principal",
+          avatar: (
+            firebaseUser.displayName?.split(" ").map(w => w[0]).join("") ||
+            email.slice(0, 2) ||
+            "AD"
+          ).toUpperCase(),
+        },
+      });
+      return true;
+    } catch (error) {
+      console.error("Erreur Firebase Google Login:", error);
       return false;
     }
   },

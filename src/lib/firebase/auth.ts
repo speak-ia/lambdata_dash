@@ -2,6 +2,8 @@ import {
   getAuth,
   signInWithEmailAndPassword,
   signOut,
+  GoogleAuthProvider,
+  signInWithPopup,
   type User,
 } from "firebase/auth";
 import { getFirebaseApp } from "./config";
@@ -22,6 +24,13 @@ export async function signInWithEmail(email: string, password: string) {
     email.trim(),
     password
   );
+  return credential.user;
+}
+
+export async function signInWithGoogle() {
+  const provider = new GoogleAuthProvider();
+  provider.setCustomParameters({ prompt: "select_account" });
+  const credential = await signInWithPopup(getAuthInstance(), provider);
   return credential.user;
 }
 
