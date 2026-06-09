@@ -27,41 +27,59 @@ import {
 } from "@/components/ui/dialog";
 import { DataTablePagination } from "@/components/dashboard/data-table-pagination";
 
-const images = [
-  { id: "IMG-001", name: "Marché Dakar", tags: ["marché", "commerce", "nourriture"], questions: 3, validations: 45, status: "Active", statusColor: "bg-emerald-100 text-emerald-700", description: "Scène de marché typique à Dakar avec des étals de fruits et légumes.", campaign: "CAMP-006" },
-  { id: "IMG-002", name: "Champ Mil Bamako", tags: ["agriculture", "mil", "champ"], questions: 2, validations: 32, status: "Active", statusColor: "bg-emerald-100 text-emerald-700", description: "Champ de mil en saison de culture dans la région de Bamako.", campaign: "CAMP-002" },
-  { id: "IMG-003", name: "Clinique Abidjan", tags: ["santé", "clinique", "hôpital"], questions: 4, validations: 28, status: "En Revue", statusColor: "bg-yellow-100 text-yellow-700", description: "Entrée d'une clinique de quartier à Abidjan, Côte d'Ivoire.", campaign: "CAMP-001" },
-  { id: "IMG-004", name: "École Primaire Ouaga", tags: ["éducation", "école", "enfants"], questions: 2, validations: 51, status: "Active", statusColor: "bg-emerald-100 text-emerald-700", description: "Classe d'école primaire à Ouagadougou, Burkina Faso.", campaign: "CAMP-004" },
-  { id: "IMG-005", name: "Transport Commun", tags: ["transport", "bus", "rue"], questions: 3, validations: 19, status: "Active", statusColor: "bg-emerald-100 text-emerald-700", description: "Arrêt de bus et transport en commun dans une rue animée.", campaign: "CAMP-003" },
-  { id: "IMG-006", name: "Atelier Artisanat", tags: ["artisanat", "travail", "bois"], questions: 1, validations: 8, status: "Inactive", statusColor: "bg-gray-100 text-gray-600", description: "Artisan travaillant le bois dans un atelier traditionnel.", campaign: "—" },
-  { id: "IMG-007", name: "Rizière Casamance", tags: ["agriculture", "riz", "casamance"], questions: 2, validations: 37, status: "Active", statusColor: "bg-emerald-100 text-emerald-700", description: "Rizière en zone humide de Casamance, Sénégal.", campaign: "CAMP-002" },
-  { id: "IMG-008", name: "Gare Routière Bamako", tags: ["transport", "gare", "bus"], questions: 3, validations: 24, status: "Active", statusColor: "bg-emerald-100 text-emerald-700", description: "Gare routière principale de Bamako, Mali.", campaign: "CAMP-003" },
-  { id: "IMG-009", name: "Pharmacie Dakar", tags: ["santé", "pharmacie", "médicaments"], questions: 4, validations: 42, status: "Active", statusColor: "bg-emerald-100 text-emerald-700", description: "Pharmacie de quartier à Dakar, Sénégal.", campaign: "CAMP-001" },
-  { id: "IMG-010", name: "Marché aux Poissons", tags: ["poisson", "marché", "pêche"], questions: 2, validations: 56, status: "Active", statusColor: "bg-emerald-100 text-emerald-700", description: "Marché aux poissons sur la côte sénégalaise.", campaign: "CAMP-006" },
-  { id: "IMG-011", name: "Champs Coton", tags: ["agriculture", "coton", "champ"], questions: 1, validations: 15, status: "En Revue", statusColor: "bg-yellow-100 text-yellow-700", description: "Champ de coton dans la zone cotonnière du Mali.", campaign: "CAMP-002" },
-  { id: "IMG-012", name: "École Coranique", tags: ["éducation", "école", "coran"], questions: 3, validations: 33, status: "Active", statusColor: "bg-emerald-100 text-emerald-700", description: "École coranique traditionnelle au Sahel.", campaign: "CAMP-004" },
-];
+import { useEffect } from "react";
+import { Loader2 } from "lucide-react";
 
 export default function ImagesPage() {
+  const [images, setImages] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
   const [showConfigModal, setShowConfigModal] = useState(false);
   const [showDetailModal, setShowDetailModal] = useState(false);
-  const [selectedImage, setSelectedImage] = useState<(typeof images)[0] | null>(null);
+  const [selectedImage, setSelectedImage] = useState<any | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(6);
+
+  const fetchImages = () => {
+    setIsLoading(true);
+    fetch("/api/images")
+      .then((res) => res.json())
+      .then((json) => {
+        if (json.success) {
+          setImages(json.images);
+        }
+        setIsLoading(false);
+      })
+      .catch((err) => {
+        console.error(err);
+        setIsLoading(false);
+      });
+  };
+
+  useEffect(() => {
+    fetchImages();
+  }, []);
 
   const totalPages = Math.ceil(images.length / pageSize);
   const paginatedImages = images.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
-  const openConfig = (img: (typeof images)[0]) => {
+  const openConfig = (img: any) => {
     setSelectedImage(img);
     setShowConfigModal(true);
   };
 
-  const openDetail = (img: (typeof images)[0]) => {
+  const openDetail = (img: any) => {
     setSelectedImage(img);
     setShowDetailModal(true);
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex h-[400px] items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-emerald-500" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

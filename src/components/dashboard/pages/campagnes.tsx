@@ -27,209 +27,37 @@ import {
 } from "@/components/ui/dialog";
 import { DataTablePagination } from "@/components/dashboard/data-table-pagination";
 
-const campaigns = [
-  {
-    id: "CAMP-001",
-    name: "Collecte Vocale Wolof - Santé",
-    type: "Audio",
-    language: "Wolof",
-    theme: "Santé",
-    status: "Active",
-    statusColor: "bg-emerald-100 text-emerald-700",
-    contributors: 89,
-    phrases: 450,
-    progress: 72,
-    startDate: "01 Mai 2024",
-    endDate: "30 Juin 2024",
-    description:
-      "Campagne de collecte audio pour des phrases médicales en Wolof. Les contributeurs enregistrent des phrases liées à la santé, aux symptômes et aux traitements.",
-  },
-  {
-    id: "CAMP-002",
-    name: "Traduction Bambara - Agriculture",
-    type: "Traduction",
-    language: "Bambara",
-    theme: "Agriculture",
-    status: "Active",
-    statusColor: "bg-emerald-100 text-emerald-700",
-    contributors: 56,
-    phrases: 320,
-    progress: 58,
-    startDate: "15 Avril 2024",
-    endDate: "15 Juin 2024",
-    description:
-      "Traduction de phrases agricoles en Bambara. Focus sur les techniques de culture, les saisons et les récoltes.",
-  },
-  {
-    id: "CAMP-003",
-    name: "Labellisation Images Dioula",
-    type: "Image",
-    language: "Dioula",
-    theme: "Vie Quotidienne",
-    status: "En Pause",
-    statusColor: "bg-yellow-100 text-yellow-700",
-    contributors: 34,
-    phrases: 200,
-    progress: 45,
-    startDate: "01 Mars 2024",
-    endDate: "31 Mai 2024",
-    description:
-      "Labellisation d'images de la vie quotidienne en Dioula. Les contributeurs décrivent et annotent des images.",
-  },
-  {
-    id: "CAMP-004",
-    name: "Collecte Vocale Pulaar - Éducation",
-    type: "Audio",
-    language: "Pulaar",
-    theme: "Éducation",
-    status: "Active",
-    statusColor: "bg-emerald-100 text-emerald-700",
-    contributors: 42,
-    phrases: 280,
-    progress: 31,
-    startDate: "10 Mai 2024",
-    endDate: "10 Juillet 2024",
-    description:
-      "Collecte vocale pour des phrases éducatives en Pulaar. Scolarité, formation et enseignement.",
-  },
-  {
-    id: "CAMP-005",
-    name: "Traduction Wolof - Finance",
-    type: "Traduction",
-    language: "Wolof",
-    theme: "Finance",
-    status: "Terminée",
-    statusColor: "bg-gray-100 text-gray-600",
-    contributors: 112,
-    phrases: 600,
-    progress: 100,
-    startDate: "01 Janvier 2024",
-    endDate: "31 Mars 2024",
-    description:
-      "Traduction de phrases financières en Wolof. Banque, épargne, microcrédit et Mobile Money.",
-  },
-  {
-    id: "CAMP-006",
-    name: "Collecte Vocale Bambara - Commerce",
-    type: "Audio",
-    language: "Bambara",
-    theme: "Commerce",
-    status: "Active",
-    statusColor: "bg-emerald-100 text-emerald-700",
-    contributors: 67,
-    phrases: 380,
-    progress: 84,
-    startDate: "01 Février 2024",
-    endDate: "31 Mai 2024",
-    description:
-      "Collecte audio pour des phrases commerciales en Bambara. Marchés, prix, négociations.",
-  },
-  {
-    id: "CAMP-007",
-    name: "Collecte Vocale Soninké - Commerce",
-    type: "Audio",
-    language: "Soninké",
-    theme: "Commerce",
-    status: "Active",
-    statusColor: "bg-emerald-100 text-emerald-700",
-    contributors: 38,
-    phrases: 250,
-    progress: 55,
-    startDate: "20 Mars 2024",
-    endDate: "20 Juin 2024",
-    description:
-      "Collecte vocale de phrases commerciales en Soninké. Échanges transfrontaliers, prix et négoce dans les marchés locaux.",
-  },
-  {
-    id: "CAMP-008",
-    name: "Traduction Malinké - Éducation",
-    type: "Traduction",
-    language: "Malinké",
-    theme: "Éducation",
-    status: "Active",
-    statusColor: "bg-emerald-100 text-emerald-700",
-    contributors: 29,
-    phrases: 180,
-    progress: 22,
-    startDate: "05 Juin 2024",
-    endDate: "05 Septembre 2024",
-    description:
-      "Traduction de phrases éducatives en Malinké. Alphabétisation, scolarisation et contenu pédagogique pour les jeunes apprenants.",
-  },
-  {
-    id: "CAMP-009",
-    name: "Labellisation Images Wolof - Santé",
-    type: "Image",
-    language: "Wolof",
-    theme: "Santé",
-    status: "En Pause",
-    statusColor: "bg-yellow-100 text-yellow-700",
-    contributors: 15,
-    phrases: 120,
-    progress: 60,
-    startDate: "10 Février 2024",
-    endDate: "10 Mai 2024",
-    description:
-      "Labellisation d'images médicales en Wolof. Identification visuelle de symptômes, équipements et pratiques de santé.",
-  },
-  {
-    id: "CAMP-010",
-    name: "Collecte Vocale Dioula - Finance",
-    type: "Audio",
-    language: "Dioula",
-    theme: "Finance",
-    status: "Active",
-    statusColor: "bg-emerald-100 text-emerald-700",
-    contributors: 51,
-    phrases: 310,
-    progress: 47,
-    startDate: "15 Avril 2024",
-    endDate: "15 Juillet 2024",
-    description:
-      "Collecte audio de phrases financières en Dioula. Services bancaires, épargne communautaire et transactions mobiles.",
-  },
-  {
-    id: "CAMP-011",
-    name: "Traduction Pulaar - Vie Quotidienne",
-    type: "Traduction",
-    language: "Pulaar",
-    theme: "Vie Quotidienne",
-    status: "Terminée",
-    statusColor: "bg-gray-100 text-gray-600",
-    contributors: 95,
-    phrases: 550,
-    progress: 100,
-    startDate: "01 Décembre 2023",
-    endDate: "28 Février 2024",
-    description:
-      "Traduction de phrases de la vie quotidienne en Pulaar. Activités domestiques, relations sociales et culture locale.",
-  },
-  {
-    id: "CAMP-012",
-    name: "Labellisation Images Bambara - Agriculture",
-    type: "Image",
-    language: "Bambara",
-    theme: "Agriculture",
-    status: "Active",
-    statusColor: "bg-emerald-100 text-emerald-700",
-    contributors: 44,
-    phrases: 290,
-    progress: 38,
-    startDate: "01 Mai 2024",
-    endDate: "01 Août 2024",
-    description:
-      "Labellisation d'images agricoles en Bambara. Cultures, outils, irrigation et pratiques agricoles traditionnelles.",
-  },
-];
+import { useEffect } from "react";
+import { Loader2 } from "lucide-react";
 
 export default function CampagnesPage() {
+  const [campaigns, setCampaigns] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showDetailModal, setShowDetailModal] = useState(false);
-  const [selectedCampaign, setSelectedCampaign] = useState<
-    (typeof campaigns)[0] | null
-  >(null);
+  const [selectedCampaign, setSelectedCampaign] = useState<any | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(6);
+
+  const fetchCampaigns = () => {
+    setIsLoading(true);
+    fetch("/api/campagnes")
+      .then((res) => res.json())
+      .then((json) => {
+        if (json.success) {
+          setCampaigns(json.campaigns);
+        }
+        setIsLoading(false);
+      })
+      .catch((err) => {
+        console.error(err);
+        setIsLoading(false);
+      });
+  };
+
+  useEffect(() => {
+    fetchCampaigns();
+  }, []);
 
   const totalPages = Math.ceil(campaigns.length / pageSize);
   const paginatedCampaigns = campaigns.slice(
@@ -237,10 +65,18 @@ export default function CampagnesPage() {
     currentPage * pageSize
   );
 
-  const openDetail = (c: (typeof campaigns)[0]) => {
+  const openDetail = (c: any) => {
     setSelectedCampaign(c);
     setShowDetailModal(true);
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex h-[400px] items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-emerald-500" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
