@@ -19,9 +19,10 @@ export const useAuth = create<AuthState>((set) => ({
   user: null,
   login: async (email: string, password: string) => {
     try {
-      const whitelist = (process.env.NEXT_PUBLIC_ADMIN_EMAILS || "")
-        .split(",")
-        .map((e) => e.trim().toLowerCase());
+      const res = await fetch("/api/admins");
+      const json = await res.json();
+      if (!json.success) return false;
+      const whitelist = json.admins.map((a: any) => a.email.toLowerCase());
 
       if (!whitelist.includes(email.trim().toLowerCase())) {
         console.warn("Utilisateur non autorisé (non-admin).");
@@ -54,9 +55,13 @@ export const useAuth = create<AuthState>((set) => ({
       const firebaseUser = await signInWithGoogle();
       const email = firebaseUser.email || "";
 
-      const whitelist = (process.env.NEXT_PUBLIC_ADMIN_EMAILS || "")
-        .split(",")
-        .map((e) => e.trim().toLowerCase());
+      const res = await fetch("/api/admins");
+      const json = await res.json();
+      if (!json.success) {
+        await signOutFirebase();
+        return false;
+      }
+      const whitelist = json.admins.map((a: any) => a.email.toLowerCase());
 
       if (!email || !whitelist.includes(email.toLowerCase())) {
         console.warn("Utilisateur non autorisé (non-admin) via Google.");

@@ -59,8 +59,8 @@ export function ExpenseOverviewChart() {
                 fontSize: "12px",
                 boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
               }}
-              formatter={(value: number) => [
-                `${value.toLocaleString()} contributions`,
+              formatter={(value: any) => [
+                `${Number(value || 0).toLocaleString()} contributions`,
                 "Total",
               ]}
               labelStyle={{ color: "#374151", fontWeight: 600 }}

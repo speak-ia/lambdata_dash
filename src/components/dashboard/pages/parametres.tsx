@@ -12,6 +12,10 @@ import {
   User,
   Lock,
   CheckCircle2,
+  Users,
+  Trash2,
+  Plus,
+  Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -23,6 +27,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
+import { useAuth } from "@/lib/auth";
 
 const SETTINGS_KEY = "lambdata_settings";
 
@@ -35,6 +40,7 @@ const defaults = {
 };
 
 export default function ParametresPage() {
+  const { user } = useAuth();
   const [settings, setSettings] = useState(defaults);
   const [saved, setSaved] = useState(false);
   const [showSaveModal, setShowSaveModal] = useState(false);
@@ -42,11 +48,37 @@ export default function ParametresPage() {
   const [pwd, setPwd] = useState({ current: "", next: "", confirm: "" });
   const [pwdError, setPwdError] = useState("");
 
+  // Admin management state
+  const [admins, setAdmins] = useState<any[]>([]);
+  const [adminsLoading, setAdminsLoading] = useState(true);
+  const [newAdminEmail, setNewAdminEmail] = useState("");
+  const [newAdminName, setNewAdminName] = useState("");
+  const [adminError, setAdminError] = useState("");
+  const [adminSuccess, setAdminSuccess] = useState("");
+  const [isAddingAdmin, setIsAddingAdmin] = useState(false);
+
+  const fetchAdmins = () => {
+    setAdminsLoading(true);
+    fetch("/api/admins")
+      .then((res) => res.json())
+      .then((json) => {
+        if (json.success) {
+          setAdmins(json.admins);
+        }
+        setAdminsLoading(false);
+      })
+      .catch((err) => {
+        console.error(err);
+        setAdminsLoading(false);
+      });
+  };
+
   useEffect(() => {
     try {
       const stored = localStorage.getItem(SETTINGS_KEY);
       if (stored) setSettings({ ...defaults, ...JSON.parse(stored) });
     } catch { /* ignore */ }
+    fetchAdmins();
   }, []);
 
   const set = (key: keyof typeof defaults, value: string | boolean) =>
@@ -68,6 +100,60 @@ export default function ParametresPage() {
     setPwdError("");
     setShowPasswordModal(false);
     setPwd({ current: "", next: "", confirm: "" });
+  };
+
+  const handleAddAdmin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setAdminError("");
+    setAdminSuccess("");
+
+    if (!newAdminEmail.trim()) {
+      setAdminError("L'adresse email est requise");
+      return;
+    }
+
+    setIsAddingAdmin(true);
+    try {
+      const res = await fetch("/api/admins", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: newAdminEmail.trim(), name: newAdminName.trim() }),
+      });
+      const json = await res.json();
+      if (json.success) {
+        setAdminSuccess("Administrateur ajouté avec succès");
+        setNewAdminEmail("");
+        setNewAdminName("");
+        fetchAdmins();
+      } else {
+        setAdminError(json.error || "Une erreur est survenue");
+      }
+    } catch (err) {
+      console.error(err);
+      setAdminError("Impossible de se connecter au serveur");
+    } finally {
+      setIsAddingAdmin(false);
+    }
+  };
+
+  const handleDeleteAdmin = async (id: string) => {
+    setAdminError("");
+    setAdminSuccess("");
+    try {
+      const res = await fetch(`/api/admins?id=${id}`, {
+        method: "DELETE",
+      });
+      const json = await res.json();
+      if (json.success) {
+        setAdminSuccess("Administrateur retiré avec succès");
+        fetchAdmins();
+      } else {
+        setAdminError(json.error || "Une erreur est survenue");
+      }
+    } catch (err) {
+      console.error(err);
+      setAdminError("Impossible de se connecter au serveur");
+    }
   };
 
   return (
@@ -185,6 +271,136 @@ export default function ParametresPage() {
                   <p className="text-[10px] text-gray-400 mt-1">Signalements avant flag automatique</p>
                 </div>
               </div>
+            </div>
+          </div>
+
+          {/* Gestion des Administrateurs */}
+          <div className="bg-white border border-gray-200 rounded-xl p-5">
+            <div className="flex items-center gap-2 mb-4">
+              <Users className="h-4 w-4 text-emerald-600" />
+              <h3 className="text-base font-semibold text-gray-800">Gestion des Administrateurs</h3>
+            </div>
+            <p className="text-xs text-gray-500 mb-4">
+              Ajoutez ou supprimez des adresses emails autorisées à se connecter au dashboard d'administration.
+            </p>
+
+            {adminError && (
+              <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-xs text-red-600 mb-4">
+                {adminError}
+              </div>
+            )}
+            {adminSuccess && (
+              <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-3 text-xs text-emerald-600 mb-4">
+                {adminSuccess}
+              </div>
+            )}
+
+            {/* Formulaire d'ajout */}
+            <form onSubmit={handleAddAdmin} className="space-y-4 mb-6 bg-gray-50 border border-gray-150 rounded-lg p-4">
+              <div className="text-xs font-semibold text-gray-700 mb-2">Ajouter un nouvel administrateur</div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="text-[10px] font-semibold text-gray-500 uppercase block mb-1">Nom Complet</label>
+                  <input
+                    type="text"
+                    placeholder="Ex: Mohamed Traoré"
+                    value={newAdminName}
+                    onChange={(e) => setNewAdminName(e.target.value)}
+                    className="w-full text-sm border border-gray-200 rounded-lg px-3 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    disabled={isAddingAdmin}
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] font-semibold text-gray-500 uppercase block mb-1">Adresse Email</label>
+                  <input
+                    type="email"
+                    placeholder="Ex: admin@lambdata.ai"
+                    value={newAdminEmail}
+                    onChange={(e) => setNewAdminEmail(e.target.value)}
+                    className="w-full text-sm border border-gray-200 rounded-lg px-3 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    required
+                    disabled={isAddingAdmin}
+                  />
+                </div>
+              </div>
+              <div className="flex justify-end mt-3">
+                <Button
+                  type="submit"
+                  disabled={isAddingAdmin}
+                  className="bg-emerald-500 hover:bg-emerald-600 text-white text-xs gap-1.5 px-3 py-1.5 h-8"
+                >
+                  {isAddingAdmin ? (
+                    <>
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                      Ajout...
+                    </>
+                  ) : (
+                    <>
+                      <Plus className="h-3.5 w-3.5" />
+                      Ajouter l'administrateur
+                    </>
+                  )}
+                </Button>
+              </div>
+            </form>
+
+            {/* Liste des administrateurs */}
+            <div className="space-y-3">
+              <div className="text-xs font-semibold text-gray-700">Administrateurs Autorisés</div>
+              
+              {adminsLoading ? (
+                <div className="flex items-center justify-center py-6">
+                  <Loader2 className="h-6 w-6 animate-spin text-emerald-500" />
+                </div>
+              ) : admins.length === 0 ? (
+                <div className="text-center py-4 text-xs text-gray-500 border border-dashed border-gray-200 rounded-lg">
+                  Aucun administrateur configuré.
+                </div>
+              ) : (
+                <div className="border border-gray-200 rounded-lg divide-y divide-gray-150 overflow-hidden">
+                  {admins.map((admin) => {
+                    const isSelf = admin.email.toLowerCase() === user?.email?.toLowerCase();
+                    const initials = (admin.name || "AD")
+                      .split(" ")
+                      .map((n: string) => n[0])
+                      .join("")
+                      .toUpperCase()
+                      .slice(0, 2);
+
+                    return (
+                      <div key={admin.id} className="flex items-center justify-between p-3 hover:bg-gray-50 transition-colors">
+                        <div className="flex items-center gap-3">
+                          <div className="h-8 w-8 bg-emerald-50 rounded-full flex items-center justify-center text-xs font-bold text-emerald-700">
+                            {initials}
+                          </div>
+                          <div>
+                            <div className="text-xs font-semibold text-gray-800 flex items-center gap-1.5">
+                              {admin.name || "Sans nom"}
+                              {isSelf && (
+                                <span className="bg-emerald-100 text-emerald-800 text-[9px] px-1.5 py-0.5 rounded font-medium">
+                                  Vous
+                                </span>
+                              )}
+                            </div>
+                            <div className="text-[11px] text-gray-500">{admin.email}</div>
+                          </div>
+                        </div>
+                        
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleDeleteAdmin(admin.id)}
+                          disabled={isSelf}
+                          title={isSelf ? "Vous ne pouvez pas supprimer votre propre compte" : "Retirer cet administrateur"}
+                          className={`h-8 w-8 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg ${isSelf ? "opacity-50 cursor-not-allowed" : ""}`}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           </div>
         </div>
